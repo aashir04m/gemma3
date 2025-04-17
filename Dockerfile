@@ -1,37 +1,39 @@
-# Use CUDA base image with sufficient capabilities for Gemma 3 27B
-FROM nvidia/cuda:12.1.0-devel-ubuntu22.04
+FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
-# Install system dependencies
+# Install Python and required dependencies
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    wget \
     curl \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /app
-
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
+# Create working directory
+WORKDIR /workspace/gemma3
+
 # Copy application files
-COPY main.py /app/
-COPY requirements.txt /app/
-COPY start.sh /app/
+COPY requirements.txt .
+COPY main.py .
+COPY start.sh .
+COPY docker-compose.yml .
+COPY gemma_UI_with_formated.html .
+COPY runpod.json .
 
 # Install Python dependencies
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Make startup script executable
-RUN chmod +x /app/start.sh
+# Make start script executable
+RUN chmod +x start.sh
 
-# Set up port for FastAPI
-EXPOSE 8000
+# Expose ports
+EXPOSE 8000 11434 8800
 
-# Set up port for Ollama
-EXPOSE 11434
+# Set environment variables
+ENV OLLAMA_HOST=localhost
+ENV DEFAULT_MODEL=gemma3:27b
 
-# Start the services
-CMD ["/app/start.sh"]
+# Command to run the server
+CMD ["/workspace/gemma3/start.sh"]
