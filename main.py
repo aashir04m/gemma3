@@ -50,7 +50,7 @@ async def health_check():
 
 @app.get("/")
 async def serve_ui():
-    return FileResponse("gemma_UI_with_formated.html")
+    return FileResponse("static/gemma_UI_with_formated.html")
 
 # RunPod serverless compatible handler
 @app.post("/")
