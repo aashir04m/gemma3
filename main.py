@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import aiohttp
 import os
@@ -24,6 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add this near the top with other app setup code
+app.mount("/static", StaticFiles(directory="."), name="static")
+
 # Request body model for chat
 class ChatRequest(BaseModel):
     model: str = "gemma3:27b"  # Default to Gemma 3 27B
@@ -43,6 +47,10 @@ class PullModelRequest(BaseModel):
 @app.get("/health")
 async def health_check():
     return {"status": "OK"}
+
+@app.get("/")
+async def serve_ui():
+    return FileResponse("gemma_UI_with_formated.html")
 
 # RunPod serverless compatible handler
 @app.post("/")
