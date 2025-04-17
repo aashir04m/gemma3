@@ -1,36 +1,38 @@
 #!/bin/bash
 
-# Update packages
-apt-get update
+# Start Ollama in the background
+echo "Starting Ollama server..."
+ollama serve &
+OLLAMA_PID=$!
 
-# Install necessary packages
-apt-get install -y python3 python3-pip curl wget
+# Wait for Ollama to initialize
+echo "Waiting for Ollama to become available..."
+MAX_RETRIES=30
+COUNT=0
+while ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; do
+    sleep 2
+    COUNT=$((COUNT+1))
+    if [ $COUNT -ge $MAX_RETRIES ]; then
+        echo "Ollama failed to start after $MAX_RETRIES attempts."
+        exit 1
+    fi
+    echo "Waiting for Ollama to become available... Attempt $COUNT/$MAX_RETRIES"
+done
+echo "Ollama is running!"
 
-# Check if repo is already cloned, if not, clone it
-if [ ! -d "/app/gemma3" ]; then
-  # Create a subdirectory
-  mkdir -p /app/gemma3
-  
-  # Clone the repository
-  git clone https://github.com/aashir04m/gemma3.git /app/gemma3
-fi
-
-# Navigate to app directory
-cd /app/gemma3
-
-# Install Python dependencies
-pip3 install --no-cache-dir fastapi uvicorn aiohttp pydantic python-multipart httpx
-
-# Check if Ollama is installed, if not install it
-if ! command -v ollama &> /dev/null; then
-  echo "Installing Ollama..."
-  curl -fsSL https://ollama.com/install.sh | sh
+# Check if Gemma 3 27B model is already downloaded
+if ! ollama list | grep -q "gemma3:27b"; then
+    echo "Downloading Gemma 3 27B model..."
+    ollama pull gemma3:27b
+    echo "Gemma 3 27B model downloaded successfully!"
 else
-  echo "Ollama is already installed"
+    echo "Gemma 3 27B model is already available."
 fi
 
-# Make startup script executable
-chmod +x start.sh
+# Start FastAPI application
+echo "Starting FastAPI application..."
+exec uvicorn main:app --host 0.0.0.0 --port 8000 --log-level info
 
-# Run the startup script
-./start.sh
+# Note: We use 'exec' so uvicorn becomes the main process
+# This means if uvicorn exits, the container exits
+# The OLLAMA_PID cleanup is not needed because 'exec' replaces the shell process
