@@ -1,26 +1,23 @@
 #!/bin/bash
 
-# Start Ollama in the background
-ollama serve &
-OLLAMA_PID=$!
+# Update and install dependencies
+apt-get update
+apt-get install -y python3 python3-pip git curl wget
 
-echo "Starting Ollama server with PID: $OLLAMA_PID"
+# Clone the repository
+git clone https://github.com/aashir04m/gemma3.git /app
 
-# Wait for Ollama to start
-echo "Waiting for Ollama to start..."
-until curl -s http://localhost:11434/api/tags > /dev/null 2>&1; do
-    echo "Waiting for Ollama to become available..."
-    sleep 2
-done
-echo "Ollama is running!"
+# Navigate to app directory
+cd /app
 
-# Pull the Gemma 3 27B model (hardcoded)
-echo "Downloading Gemma 3 27B model..."
-ollama pull gemma3:27b
+# Install Python dependencies
+pip3 install --no-cache-dir -r requirements.txt
 
-# Start FastAPI application
-echo "Starting FastAPI application..."
-uvicorn main:app --host 0.0.0.0 --port 8000 --log-level info
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
 
-# If FastAPI exits, kill Ollama
-kill $OLLAMA_PID
+# Make startup script executable
+chmod +x start.sh
+
+# Run the startup script
+./start.sh
